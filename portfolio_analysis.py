@@ -16,6 +16,7 @@ def get_historical_prices(symbols, start_date, end_date):
     # Convert Series to DataFrame if single stock
     if isinstance(df, pd.Series):
         df = pd.DataFrame(df, columns=[symbols[0] if isinstance(symbols, list) else symbols])
+
     return df.dropna()
 
 # Calculate daily returns
@@ -86,6 +87,59 @@ def calc_skewness(daily_returns):
 def calc_kurtosis(daily_returns):
     return daily_returns.kurtosis()
 
+# Calculate Value at Risk (VaR)
+def calc_var(daily_returns, confidence_level=0.95):
+    return daily_returns.quantile(1 - confidence_level)
+
+# Calculate Conditional Value at Risk (CVaR)
+def calc_cvar(daily_returns, confidence_level=0.95):
+    var = calc_var(daily_returns, confidence_level)
+    cvar = daily_returns[daily_returns <= var].mean()
+    return cvar
+
+# Calculate Beta (relative to NIFTY 50) - Fixed
+def calc_beta_alpha(daily_returns, start_date, end_date,risk_free_rate = 0.05):
+    market_df = yf.download('^NSEI',start_date, end_date )
+    market_df.columns = [col[0] if isinstance(col, tuple) else col for col in market_df.columns]
+    market_returns = np.log(market_df['Close'] / market_df['Close'].shift(1)).dropna()
+    
+    # Initialize dictionaries to store results for each stock
+    beta_values = []
+    alpha_values = []
+    expected_return_values = []
+    stock_names = daily_returns.columns
+
+    # Iterate over each stock's returns (each column in daily_returns)
+    for stock in stock_names:
+    
+        stock_returns = daily_returns[stock].dropna()
+
+        returns_df = pd.DataFrame({
+            'stock_returns': stock_returns,
+            'market_returns': market_returns
+        }).dropna()
+
+        covmat = np.cov(returns_df['stock_returns'], returns_df['market_returns'])
+        beta = covmat[0,1] / covmat[1,1]
+
+        annualized_return = stock_returns.mean() * 252
+        market_annualized = market_returns.mean() * 252
+        alpha = annualized_return - (risk_free_rate + beta * (market_annualized - risk_free_rate))
+        expected_return = risk_free_rate + beta * (market_annualized - risk_free_rate)
+
+        # Store results
+        beta_values.append(beta)
+        alpha_values.append(alpha)
+        expected_return_values.append(expected_return)
+
+    # Convert results to pandas Series with stock symbols as index
+    beta_series = pd.Series(beta_values, index=stock_names, name='Beta')
+    alpha_series = pd.Series(alpha_values, index=stock_names, name='Alpha')
+    expected_return_series = pd.Series(expected_return_values, index=stock_names, name='Expected Return')
+
+    return beta_series, alpha_series, expected_return_series
+
+
 # Main analysis function to return all metrics
 def analyze_portfolio(symbols, start_date, end_date):
     if isinstance(symbols, str):
@@ -96,9 +150,10 @@ def analyze_portfolio(symbols, start_date, end_date):
         raise ValueError("No historical data available for the selected stocks.")
     
     daily_returns = calc_daily_returns(closes)
-    
     # Calculate weights for portfolio variance (equal weights for individual stock analysis)
     weights = np.ones(len(symbols)) / len(symbols)
+
+    beta, alpha, expected_return = calc_beta_alpha(daily_returns,start_date, end_date)
     
     metrics = {
         'Annualized Return': calc_annualized_return(daily_returns),
@@ -106,12 +161,18 @@ def analyze_portfolio(symbols, start_date, end_date):
         'Overall Return': calc_overall_return(closes),
         'Volatility': daily_returns.std() * np.sqrt(252),
         'Variance': calc_portfolio_var(daily_returns, weights),
-        'Sharpe Ratio': calc_sharpe_ratio(daily_returns),
+        'VaR (95%)': calc_var(daily_returns, confidence_level=0.95),
+        'CVaR (95%)': calc_cvar(daily_returns, confidence_level=0.95),
+        'Beta': beta,
+        'Alpha': alpha,
+        'Expected Return': expected_return,
+        'Sharpe Ratio': calc_sharpe_ratio(daily_returns),        
         'Sortino Ratio': calc_sortino_ratio(daily_returns),
         'Max Drawdown': calc_max_drawdown(closes),
         'Calmar Ratio': calc_calmar_ratio(closes, daily_returns),
         'Skewness': calc_skewness(daily_returns),
         'Kurtosis': calc_kurtosis(daily_returns)
+        
     }
     print(metrics)
     return closes, daily_returns, pd.DataFrame(metrics, index=closes.columns)

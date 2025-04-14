@@ -19,7 +19,7 @@ def calc_daily_returns(closes):
     return np.log(closes / closes.shift(1)).dropna()
 
 # Calculate portfolio performance with unified metrics
-def portfolio_performance(weights, closes, risk_free_rate=0.01):
+def portfolio_performance(weights, closes, start_date, end_date, risk_free_rate=0.01):
     daily_returns = calc_daily_returns(closes)
     portfolio_returns = (daily_returns * weights).sum(axis=1)
     
@@ -51,8 +51,8 @@ def portfolio_performance(weights, closes, risk_free_rate=0.01):
     cumulative = (1 + portfolio_returns).cumprod()
     peak = cumulative.cummax()
     drawdown = (cumulative - peak) / peak
-    max_drawdown = drawdown.min()
-    
+    max_drawdown = drawdown.min() * 100
+
     # Calmar Ratio
     calmar_ratio = annualized_return / abs(max_drawdown) if max_drawdown != 0 else np.nan
     
@@ -60,6 +60,28 @@ def portfolio_performance(weights, closes, risk_free_rate=0.01):
     skewness = portfolio_returns.skew()
     kurtosis = portfolio_returns.kurtosis()
     
+    # VaR and CVaR
+    var_95 = portfolio_returns.quantile(0.05)
+    cvar_95 = portfolio_returns[portfolio_returns <= var_95].mean()
+
+    # Beta, Alpha, and Expected Return
+    market_df = yf.download('^NSEI', start=start_date, end=end_date)
+    market_df.columns = [col[0] if isinstance(col, tuple) else col for col in market_df.columns]
+    market_returns = np.log(market_df['Close'] / market_df['Close'].shift(1)).dropna()
+    
+    returns_df = pd.DataFrame({
+        'portfolio_returns': portfolio_returns,
+        'market_returns': market_returns
+    }).dropna()
+
+    covmat = np.cov(returns_df['portfolio_returns'], returns_df['market_returns'])
+    beta = covmat[0, 1] / covmat[1, 1]
+
+    annualized_portfolio_return = portfolio_returns.mean() * 252
+    market_annualized = market_returns.mean() * 252
+    alpha = annualized_portfolio_return - (risk_free_rate + beta * (market_annualized - risk_free_rate))
+    expected_return = risk_free_rate + beta * (market_annualized - risk_free_rate)
+
     return {
         'Annualized Return': annualized_return,
         'CAGR': cagr,
@@ -72,6 +94,11 @@ def portfolio_performance(weights, closes, risk_free_rate=0.01):
         'Calmar Ratio': calmar_ratio,
         'Skewness': skewness,
         'Kurtosis': kurtosis,
+        'VaR (95%)': var_95,
+        'CVaR (95%)': cvar_95,
+        'Beta': beta,
+        'Alpha': alpha,
+        'Expected Return': expected_return,
         'Portfolio Returns': portfolio_returns,
         'Cumulative Returns': cumulative
     }
@@ -80,7 +107,7 @@ def portfolio_performance(weights, closes, risk_free_rate=0.01):
 def equal_weighted_portfolio(symbols, start_date, end_date):
     closes = get_historical_prices(symbols, start_date, end_date)
     weights = np.ones(len(symbols)) / len(symbols)
-    performance = portfolio_performance(weights, closes)
+    performance = portfolio_performance(weights, closes, start_date, end_date)
     return weights, performance
 
 # Optimized portfolio (Max Sharpe Ratio)
@@ -94,7 +121,7 @@ def optimized_portfolio(symbols, start_date, end_date):
     cleaned_weights = ef.clean_weights()
     
     weights = np.array(list(cleaned_weights.values()))
-    performance = portfolio_performance(weights, closes)
+    performance = portfolio_performance(weights, closes, start_date, end_date)
     return weights, performance
 
 # Generate Efficient Frontier for visualization with debug
@@ -152,12 +179,18 @@ def optimize_portfolio(symbols, start_date, end_date):
         'Overall Return': [eq_performance['Overall Return'], opt_performance['Overall Return']],
         'Volatility': [eq_performance['Volatility'], opt_performance['Volatility']],
         'Variance': [eq_performance['Variance'], opt_performance['Variance']],
+        'VaR (95%)': [eq_performance['VaR (95%)'], opt_performance['VaR (95%)']],
+        'CVaR (95%)': [eq_performance['CVaR (95%)'], opt_performance['CVaR (95%)']],
+        'Beta': [eq_performance['Beta'], opt_performance['Beta']],
+        'Alpha': [eq_performance['Alpha'], opt_performance['Alpha']],
+        'Expected Return': [eq_performance['Expected Return'], opt_performance['Expected Return']],
         'Sharpe Ratio': [eq_performance['Sharpe Ratio'], opt_performance['Sharpe Ratio']],
         'Sortino Ratio': [eq_performance['Sortino Ratio'], opt_performance['Sortino Ratio']],
         'Max Drawdown': [eq_performance['Max Drawdown'], opt_performance['Max Drawdown']],
         'Calmar Ratio': [eq_performance['Calmar Ratio'], opt_performance['Calmar Ratio']],
         'Skewness': [eq_performance['Skewness'], opt_performance['Skewness']],
         'Kurtosis': [eq_performance['Kurtosis'], opt_performance['Kurtosis']]
+        
     })
     
     # Portfolio weights
