@@ -22,10 +22,20 @@ page = st.sidebar.radio("Choose a page", ["Portfolio Analysis", "Portfolio Optim
 # Sidebar Date Picker
 st.sidebar.header("Select Date Range")
 default_end_date = datetime.now().date()
-default_start_date = (datetime.now() - timedelta(days=7*365)).date()
+default_start_date = datetime(2018, 1, 1).date()  # Changed to Jan 1, 2018
 start_date = st.sidebar.date_input("Start Date", value=default_start_date, min_value=datetime(2000, 1, 1).date(), max_value=default_end_date)
 end_date = st.sidebar.date_input("End Date", value=default_end_date, min_value=start_date, max_value=default_end_date)
 
+# Sidebar Footnote with LinkedIn Link
+st.sidebar.markdown(
+    """
+    <br><br>
+    <footer style='text-align: center; font-size: 16px;'>
+        Developed by <a href='https://www.linkedin.com/in/kim-kmathews/' target='_blank'>Kim Mathews</a>
+    </footer>
+    """,
+    unsafe_allow_html=True
+)
 # Sidebar Stock Search
 filtered_df = stock_df
 stock_options = [f"{row['SYMBOL']} - {row['NAME OF COMPANY']}" for _, row in filtered_df.iterrows()]
