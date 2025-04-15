@@ -91,33 +91,35 @@ if page is None:
     ### Data Source
     - Stock data is fetched from Yahoo Finance using the `.NS` suffix for NSE-listed companies.
     - The stock list is sourced from the official NSE `EQUITY_L.csv` file.
+    """)
 
-    ### Metrics Explained
-    This tool uses a variety of financial metrics to evaluate stock and portfolio performance. Below is a description of each metric to help you understand their significance:
-
+    st.write("### Metrics Explained")
+    st.write("This tool uses a variety of financial metrics to evaluate stock and portfolio performance. Below is a description of each metric to help you understand their significance:")
+    st.markdown("""
     - **Annualized Return**: The average yearly return of an investment, assuming the returns are compounded annually. It helps you understand the expected yearly growth rate over the selected period.
     - **Compound Annual Growth Rate (CAGR)**: The annual growth rate of an investment over a specified period, assuming profits are reinvested. It provides a smoothed annual return, ignoring volatility, and is useful for comparing long-term performance.
-    - **Overall Return**: The total percentage return of an investment over the entire period, calculated as \(( \text{Final Value} / \text{Initial Value} - 1 ) \times 100\). It shows the total growth or loss without annualizing.
+    - **Overall Return**: The total percentage return of an investment over the entire period, calculated as $ ( (Final Value / Initial Value) - 1 ) \\times 100 $. It shows the total growth or loss without annualizing.
     - **Volatility**: A measure of the stock or portfolio’s price fluctuations, calculated as the annualized standard deviation of daily returns. Higher volatility indicates greater risk due to larger price swings.
     - **Variance**: The square of volatility, representing the dispersion of returns around the mean. It’s a statistical measure of risk, often used in portfolio optimization.
     - **VaR (95%) (Value at Risk)**: The maximum expected loss over a given period at a 95% confidence level, based on historical returns. For example, a VaR of -5% means there’s a 5% chance of losing more than 5% in a single day.
     - **CVaR (95%) (Conditional Value at Risk)**: The average loss expected in the worst 5% of cases, providing a measure of the tail risk beyond the VaR. It’s useful for understanding the severity of extreme losses.
     - **Beta**: A measure of the stock or portfolio’s sensitivity to market movements, calculated relative to the NIFTY 50 index. A beta of 1 means the stock moves with the market, >1 means it’s more volatile, and <1 means it’s less volatile.
     - **Alpha**: The excess return of the stock or portfolio relative to the expected return based on its beta, calculated using the Capital Asset Pricing Model (CAPM). Positive alpha indicates outperformance compared to the market.
-    - **Expected Return**: The theoretical return of the stock or portfolio based on the CAPM, calculated as \(\text{Risk-Free Rate} + \text{Beta} \times (\text{Market Return} - \text{Risk-Free Rate})\). It represents the return expected given the stock’s market risk.
-    - **Sharpe Ratio**: A risk-adjusted return metric, calculated as \((\text{Annualized Return} - \text{Risk-Free Rate}) / \text{Volatility}\). It measures the excess return per unit of risk, with higher values indicating better risk-adjusted performance (assumes a risk-free rate of 1%).
-    - **Sortino Ratio**: Similar to the Sharpe Ratio but focuses on downside risk, calculated as \((\text{Annualized Return} - \text{Risk-Free Rate}) / \text{Downside Deviation}\). It penalizes only negative volatility, making it useful for investors concerned about losses.
+    - **Expected Return**: The theoretical return of the stock or portfolio based on the CAPM, calculated as $ RiskFreeRate + Beta \\times (MarketReturn - RiskFreeRate) $. It represents the return expected given the stock’s market risk.
+    - **Sharpe Ratio**: A risk-adjusted return metric, calculated as $ (Annualized Return - RiskFreeRate) / Volatility $. It measures the excess return per unit of risk, with higher values indicating better risk-adjusted performance (assumes a risk-free rate of 1%).
+    - **Sortino Ratio**: Similar to the Sharpe Ratio but focuses on downside risk, calculated as $ (Annualized Return - RiskFreeRate) / DownsideDeviation $. It penalizes only negative volatility, making it useful for investors concerned about losses.
     - **Max Drawdown**: The largest peak-to-trough decline in the value of an investment, expressed as a percentage. It measures the worst-case loss during the period, helping you assess the potential downside risk.
-    - **Calmar Ratio**: A risk-adjusted return metric, calculated as \(\text{Annualized Return} / |\text{Max Drawdown}|\). It measures return per unit of maximum drawdown, with higher values indicating better performance relative to the worst loss.
+    - **Calmar Ratio**: A risk-adjusted return metric, calculated as $ Annualized Return / |Max Drawdown| $. It measures return per unit of maximum drawdown, with higher values indicating better performance relative to the worst loss.
     - **Skewness**: A measure of the asymmetry of the return distribution. Positive skewness indicates more frequent small losses and occasional large gains, while negative skewness indicates more frequent small gains and occasional large losses.
     - **Kurtosis**: A measure of the "tailedness" of the return distribution. High kurtosis indicates a higher likelihood of extreme returns (both positive and negative), while low kurtosis suggests more moderate returns.
+    """, unsafe_allow_html=True)
 
+    st.write("""
     ### Disclaimer
     **For Educational Purposes Only:** This tool is intended solely for educational purposes to help users understand portfolio analysis and optimization concepts. It is not intended as financial advice. Any investment decisions should be made after consulting with a qualified financial advisor. Past performance is not a guarantee of future results, and investing in the stock market involves risks, including the potential loss of principal.
 
     Start by selecting a page from the sidebar to explore your portfolio options!
     """)
-
 elif page == "Portfolio Analysis":
     st.header("Portfolio Analysis")
     selected_options = st.multiselect("Select stocks", stock_options, default=[stock_options[1857]])
